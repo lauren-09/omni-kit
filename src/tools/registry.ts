@@ -85,6 +85,8 @@ export type Tool = {
   /** Main tools get a card; the rest are shown as quick conversion links. */
   featured?: boolean
   badge?: string
+  /** ISO date the tool went live; it's marked "New" for NEW_FOR_DAYS afterwards. */
+  addedOn?: string
   render: () => ReactNode
 }
 
@@ -304,7 +306,7 @@ export const TOOLS: Tool[] = [
     { kind: "video", accept: MEDIA_ACCEPT.video, hint: "MP4, MOV, WebM, MKV, AVI and more", defaultTarget: "mp4" }
   ),
   tool(
-    { ...MEDIA, id: "compress-video", name: "Compress Video", featured: true, icon: Shrink,
+    { ...MEDIA, id: "compress-video", name: "Compress Video", featured: true, icon: Shrink, addedOn: "2026-10-27",
       description: "Shrink videos by quality level or to a target size, like 10 MB or 25 MB.",
       keywords: "video compressor reduce shrink smaller size mb mp4 mov webm discord email whatsapp" },
     engines.videoCompress
@@ -436,6 +438,17 @@ export const TOOLS: Tool[] = [
     engines.unzip
   ),
 ]
+
+const NEW_FOR_DAYS = 30
+
+export function isNew(tool: Tool): boolean {
+  return !!tool.addedOn && Date.now() - Date.parse(tool.addedOn) < NEW_FOR_DAYS * 86_400_000
+}
+
+/** Tools still marked "New", most recent first. */
+export function newTools(): Tool[] {
+  return TOOLS.filter(isNew).sort((a, b) => b.addedOn!.localeCompare(a.addedOn!))
+}
 
 export function categoryOf(tool: Tool): Category {
   return CATEGORIES.find((c) => c.id === tool.category)!

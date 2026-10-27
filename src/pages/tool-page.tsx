@@ -1,7 +1,7 @@
 import { Fragment, Suspense } from "react"
 import { ChevronRight, ShieldCheck } from "lucide-react"
 import { ErrorBoundary } from "@/components/error-boundary"
-import { Badge } from "@/components/ui/badge"
+import { ToolBadges } from "@/components/tool-badges"
 import { cn } from "@/lib/utils"
 import { QuickLinks, ToolCard } from "@/pages/home"
 import { categoryOf, toolsIn, type Tool } from "@/tools/registry"
@@ -28,7 +28,7 @@ export function ToolPage({ tool }: { tool: Tool }) {
         <div className="grid gap-1">
           <h1 className="flex items-center gap-2 font-heading text-2xl font-semibold tracking-tight sm:text-3xl">
             {tool.name}
-            {tool.badge && <Badge variant="secondary">{tool.badge}</Badge>}
+            <ToolBadges tool={tool} />
           </h1>
           <p className="text-muted-foreground">{tool.description}</p>
         </div>

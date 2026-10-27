@@ -11,6 +11,7 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { NewTag } from "@/components/tool-badges"
 import { cn } from "@/lib/utils"
 import { CATEGORIES, toolsIn, type Tool } from "@/tools/registry"
 
@@ -40,8 +41,9 @@ export function DesktopNav({ route }: { route: string }) {
                   </NavigationMenuLink>
                   {ordered(toolsIn(category.id)).map((tool) => (
                     <NavigationMenuLink key={tool.id} asChild>
-                      <a href={`#/${tool.id}`} className="py-1.5 text-muted-foreground hover:text-foreground">
+                      <a href={`#/${tool.id}`} className="flex-row items-center gap-1.5 py-1.5 text-muted-foreground hover:text-foreground">
                         {tool.name}
+                        <NewTag tool={tool} />
                       </a>
                     </NavigationMenuLink>
                   ))}
@@ -100,7 +102,7 @@ export function MobileNav({ route }: { route: string }) {
                           route === tool.id && "bg-muted font-medium text-foreground"
                         )}
                       >
-                        {tool.name}
+                        {tool.name} <NewTag tool={tool} />
                       </a>
                     </li>
                   ))}

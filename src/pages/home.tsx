@@ -5,7 +5,8 @@ import { buttonVariants } from "@/components/ui/button"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { CATEGORIES, categoryOf, searchTools, toolsIn, type Category, type Tool } from "@/tools/registry"
+import { NewTag, ToolBadges } from "@/components/tool-badges"
+import { CATEGORIES, categoryOf, newTools, searchTools, toolsIn, type Category, type Tool } from "@/tools/registry"
 
 const PROMISES = [
   { icon: Lock, title: "Private by design", text: "Everything runs in your browser. Your files are never uploaded to a server." },
@@ -23,7 +24,7 @@ export function ToolCard({ tool }: { tool: Tool }) {
           </div>
           <CardTitle className="flex items-center gap-2">
             {tool.name}
-            {tool.badge && <Badge variant="secondary">{tool.badge}</Badge>}
+            <ToolBadges tool={tool} />
           </CardTitle>
           <CardDescription>{tool.description}</CardDescription>
         </CardHeader>
@@ -40,6 +41,7 @@ export function QuickLinks({ tools, label = "Quick conversions" }: { tools: Tool
       {tools.map((tool) => (
         <a key={tool.id} href={`#/${tool.id}`} className={cn(badgeVariants({ variant: "outline" }), "h-7 px-3 text-sm hover:bg-muted")}>
           {tool.name}
+          <NewTag tool={tool} />
         </a>
       ))}
     </div>
@@ -87,14 +89,23 @@ export function CategorySection({ category, showAll }: { category: Category; sho
 export function HomePage() {
   const [query, setQuery] = useState("")
   const results = query.trim() ? searchTools(query) : null
+  const latest = newTools()[0]
 
   return (
     <>
       <section className="border-b bg-linear-to-b from-muted/60 to-background">
         <div className="mx-auto max-w-6xl px-4 py-14 text-center sm:py-20">
-          <Badge variant="outline" className="mb-5 bg-background">
-            <Sparkles /> 100% free · No sign-up · Files never leave your device
-          </Badge>
+          {latest ? (
+            <a href={`#/${latest.id}`} className={cn(badgeVariants({ variant: "outline" }), "mb-5 h-7 gap-1.5 bg-background px-3 hover:bg-muted")}>
+              <Badge className="h-4 px-1.5 text-[10px]">New</Badge>
+              {latest.name} is here
+              <ArrowRight />
+            </a>
+          ) : (
+            <Badge variant="outline" className="mb-5 bg-background">
+              <Sparkles /> 100% free · No sign-up · Files never leave your device
+            </Badge>
+          )}
           <h1 className="font-heading text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
             Every file tool you need.
             <br />
