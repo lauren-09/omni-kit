@@ -5,6 +5,16 @@ export const MEDIA_ACCEPT = {
   audio: "audio/*,.mp3,.wav,.ogg,.oga,.m4a,.aac,.flac,.opus,.wma,.aiff,.amr",
 }
 
+export function extOf(name: string) {
+  return name.includes(".") ? name.split(".").pop()!.toLowerCase() : "bin"
+}
+
+export function formatDuration(seconds: number) {
+  const m = Math.floor(seconds / 60)
+  const s = Math.round(seconds % 60)
+  return `${m}:${String(s).padStart(2, "0")}`
+}
+
 export type VideoTarget = "mp4" | "webm" | "mov" | "mkv" | "avi"
 export type AudioTarget = "mp3" | "wav" | "ogg" | "m4a" | "flac" | "opus"
 export type VideoQuality = "high" | "balanced" | "small"
@@ -73,6 +83,29 @@ export function videoArgs(
     avi: ["-c:v", "mpeg4", "-q:v", MPEG4_Q[quality], "-c:a", "libmp3lame", "-q:a", "4"],
   }
   return ["-i", input, "-map", "0:v:0", "-map", "0:a?", ...scaleFilter(maxHeight), ...codecs[target], ...faststart, output]
+}
+
+export type CompressLevel = "light" | "balanced" | "strong"
+
+const COMPRESS_CRF: Record<CompressLevel, string> = { light: "24", balanced: "28", strong: "32" }
+
+/**
+ * Re-encodes to H.264 MP4, the most widely playable result. Without `videoKbps` the quality
+ * level decides the size; with it, an average bitrate aims at a file size.
+ */
+export function compressVideoArgs(
+  input: string,
+  output: string,
+  { level, videoKbps, maxHeight, audioKbps }: { level: CompressLevel; videoKbps: number | null; maxHeight: number | null; audioKbps: number | null }
+): string[] {
+  const rate = videoKbps
+    ? ["-b:v", `${videoKbps}k`, "-maxrate", `${Math.round(videoKbps * 1.5)}k`, "-bufsize", `${videoKbps * 2}k`]
+    : ["-crf", COMPRESS_CRF[level]]
+  const audio = audioKbps ? ["-map", "0:a?", "-c:a", "aac", "-b:a", `${audioKbps}k`] : ["-an"]
+  return [
+    "-i", input, "-map", "0:v:0", ...audio, ...scaleFilter(maxHeight),
+    "-c:v", "libx264", "-preset", "veryfast", ...rate, "-pix_fmt", "yuv420p", "-movflags", "+faststart", output,
+  ]
 }
 
 export function audioArgs(input: string, output: string, target: AudioTarget, bitrate: number): string[] {

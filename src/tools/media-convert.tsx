@@ -13,6 +13,8 @@ import {
   AUDIO_TARGETS,
   audioArgs,
   canCopyStreams,
+  extOf,
+  formatDuration,
   VIDEO_TARGETS,
   videoArgs,
   type AudioTarget,
@@ -23,16 +25,6 @@ import {
 type MediaConvertProps =
   | { kind: "video"; accept: string; hint: string; defaultTarget: VideoTarget }
   | { kind: "audio"; accept: string; hint: string; defaultTarget: AudioTarget }
-
-function extOf(name: string) {
-  return name.includes(".") ? name.split(".").pop()!.toLowerCase() : "bin"
-}
-
-function formatDuration(seconds: number) {
-  const m = Math.floor(seconds / 60)
-  const s = Math.round(seconds % 60)
-  return `${m}:${String(s).padStart(2, "0")}`
-}
 
 export default function MediaConvert(props: MediaConvertProps) {
   const { kind, accept, hint } = props

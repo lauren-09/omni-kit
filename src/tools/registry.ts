@@ -25,6 +25,7 @@ import {
   Scaling,
   Scissors,
   Shapes,
+  Shrink,
   WandSparkles,
   type LucideIcon,
 } from "lucide-react"
@@ -105,6 +106,7 @@ const engines = {
   imagesToPdf: lazy(() => import("./images-to-pdf")),
   pdfToImages: lazy(() => import("./pdf-to-images")),
   mediaConvert: lazy(() => import("./media-convert")),
+  videoCompress: lazy(() => import("./video-compress")),
   videoToGif: lazy(() => import("./video-to-gif")),
   animationConvert: lazy(() => import("./animation-convert")),
   imagesToGif: lazy(() => import("./images-to-gif")),
@@ -300,6 +302,12 @@ export const TOOLS: Tool[] = [
       keywords: "video convert mp4 webm mov mkv avi resize compress" },
     engines.mediaConvert,
     { kind: "video", accept: MEDIA_ACCEPT.video, hint: "MP4, MOV, WebM, MKV, AVI and more", defaultTarget: "mp4" }
+  ),
+  tool(
+    { ...MEDIA, id: "compress-video", name: "Compress Video", featured: true, icon: Shrink,
+      description: "Shrink videos by quality level or to a target size, like 10 MB or 25 MB.",
+      keywords: "video compressor reduce shrink smaller size mb mp4 mov webm discord email whatsapp" },
+    engines.videoCompress
   ),
   tool(
     { ...MEDIA, id: "audio-converter", name: "Audio Converter", featured: true, icon: AudioLines,
