@@ -1,0 +1,14 @@
+# Security headers, applied by Cloudflare Pages and Netlify.
+# The CSP allows only this site's own code, plus the two engine CDNs for downloads.
+# 'wasm-unsafe-eval' lets WebAssembly compile; blob: covers the verified engines and workers.
+# 'unsafe-eval' is required by @imgly/background-removal, whose bundled ndarray library builds
+# accessor functions with new Function() from fixed internal templates (never from user input).
+# connect-src still limits where any code can send data, so files cannot be exfiltrated.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval' 'unsafe-eval'; worker-src 'self' blob:; connect-src 'self' blob: data: https://cdn.jsdelivr.net https://staticimgly.com; img-src 'self' blob: data:; media-src 'self' blob:; font-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; frame-src 'self' blob: about:; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()
+  Cross-Origin-Opener-Policy: same-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains

@@ -9,6 +9,9 @@ const PX_TO_PT = 0.75
 async function renderDocx(file: File, forPrint: boolean): Promise<HTMLIFrameElement> {
   const { renderAsync } = await import("docx-preview")
   const iframe = document.createElement("iframe")
+  // Untrusted documents: no scripts (or javascript: links) may ever run in here.
+  // allow-same-origin lets us read the rendered pages; allow-modals lets print() open.
+  iframe.setAttribute("sandbox", "allow-same-origin allow-modals")
   iframe.setAttribute("aria-hidden", "true")
   iframe.tabIndex = -1
   iframe.style.cssText = "position:fixed;left:-10000px;top:0;width:1400px;height:900px;border:0;"

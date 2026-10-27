@@ -18,9 +18,13 @@ import { CATEGORIES, toolsIn, type Tool } from "@/tools/registry"
 const ordered = (tools: Tool[]) => [...tools.filter((t) => t.featured), ...tools.filter((t) => !t.featured)]
 
 /** Desktop: one "All tools" mega-menu with a column per category. */
-export function DesktopNav() {
+export function DesktopNav({ route }: { route: string }) {
+  // Close the menu on any navigation, including the browser's Back button.
+  const [open, setOpen] = useState("")
+  useEffect(() => setOpen(""), [route])
+
   return (
-    <NavigationMenu className="hidden md:flex">
+    <NavigationMenu value={open} onValueChange={setOpen} className="hidden md:flex">
       <NavigationMenuList>
         <NavigationMenuItem>
           <NavigationMenuTrigger>All tools</NavigationMenuTrigger>

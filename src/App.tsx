@@ -43,7 +43,7 @@ export default function App() {
             </span>
             OmniKit
           </a>
-          <DesktopNav />
+          <DesktopNav route={route} />
           <div className="ml-auto flex items-center gap-2">
             <Badge variant="outline" className="hidden xl:inline-flex">
               <ShieldCheck /> Files stay on your device

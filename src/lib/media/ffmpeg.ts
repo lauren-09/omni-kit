@@ -8,15 +8,29 @@ import type { Report } from "@/hooks/use-task"
  */
 const CORE_BASE = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm"
 
+/**
+ * SHA-256 of the official npm release files. Code from the CDN runs inside our origin,
+ * so a tampered or swapped file must be refused rather than executed.
+ */
+const CORE_INTEGRITY = {
+  js: "Z6SPEWRfhUOfP95PIRkELBazdLkQIGt6eiTzQuKNyuM=",
+  wasm: "n1eUelvVMNjwDFs/LLKjSS+qfl2CMxU0LWqGVtCmt7c=",
+}
+
 let instance: Promise<FFmpeg> | null = null
 let cancelled = false
 
+async function sha256(blob: Blob): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", await blob.arrayBuffer()))
+  return btoa(String.fromCharCode(...digest))
+}
+
 /**
- * Downloads to a same-origin blob: URL (required to start the engine's worker).
- * Not using @ffmpeg/util's toBlobURL: it treats Content-Length as exact, but CDNs report the
- * compressed size, so its integrity check fails and it then re-reads a consumed body.
+ * Downloads to a same-origin blob: URL (required to start the engine's worker), after
+ * verifying its hash. Not using @ffmpeg/util's toBlobURL: it treats Content-Length as exact,
+ * but CDNs report the compressed size, so its check fails and it then re-reads a consumed body.
  */
-async function toBlobUrl(url: string, type: string, onProgress?: (fraction: number) => void): Promise<string> {
+async function toBlobUrl(url: string, type: string, integrity: string, onProgress?: (fraction: number) => void): Promise<string> {
   const response = await fetch(url).catch(() => null)
   if (!response?.ok || !response.body) {
     throw new Error("Couldn't download the media engine. Check your internet connection and try again.")
@@ -32,7 +46,11 @@ async function toBlobUrl(url: string, type: string, onProgress?: (fraction: numb
     received += value.length
     if (total) onProgress?.(Math.min(0.99, received / total))
   }
-  return URL.createObjectURL(new Blob(chunks, { type }))
+  const blob = new Blob(chunks, { type })
+  if ((await sha256(blob)) !== integrity) {
+    throw new Error("The downloaded media engine failed its security check, so it wasn't run. Please try again later.")
+  }
+  return URL.createObjectURL(blob)
 }
 
 function load(report: Report): Promise<FFmpeg> {
@@ -40,8 +58,8 @@ function load(report: Report): Promise<FFmpeg> {
     const { FFmpeg } = await import("@ffmpeg/ffmpeg")
     const ffmpeg = new FFmpeg()
     const [coreURL, wasmURL] = await Promise.all([
-      toBlobUrl(`${CORE_BASE}/ffmpeg-core.js`, "text/javascript"),
-      toBlobUrl(`${CORE_BASE}/ffmpeg-core.wasm`, "application/wasm", (f) =>
+      toBlobUrl(`${CORE_BASE}/ffmpeg-core.js`, "text/javascript", CORE_INTEGRITY.js),
+      toBlobUrl(`${CORE_BASE}/ffmpeg-core.wasm`, "application/wasm", CORE_INTEGRITY.wasm, (f) =>
         report(f, "Downloading media engine (one time only, then cached)…")
       ),
     ])

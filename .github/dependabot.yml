@@ -1,0 +1,10 @@
+# Opens a pull request when dependencies have updates or security fixes.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      all-dependencies:
+        patterns: ["*"]
