@@ -1,34 +1,89 @@
-import { useState } from "react"
-import { ArrowRight, Gift, Lock, Search, Sparkles, Zap } from "lucide-react"
-import { Badge, badgeVariants } from "@/components/ui/badge"
-import { buttonVariants } from "@/components/ui/button"
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { cn } from "@/lib/utils"
+import { ArrowRight, Repeat2, SearchX, ShieldCheck } from "lucide-react"
+import { FormatPair } from "@/components/format-pair"
 import { NewTag, ToolBadges } from "@/components/tool-badges"
-import { CATEGORIES, categoryOf, newTools, searchTools, toolsIn, type Category, type Tool } from "@/tools/registry"
+import { cn } from "@/lib/utils"
+import { CATEGORIES, categoryOf, featuredFirst, TOOLS, toolsIn, type Category, type CategoryId, type Tool } from "@/tools/registry"
 
-const PROMISES = [
-  { icon: Lock, title: "Private by design", text: "Everything runs in your browser. Your files are never uploaded to a server." },
-  { icon: Gift, title: "Free, no catch", text: "No sign-up, no watermarks, no limits, no ads, no tracking." },
-  { icon: Zap, title: "Fast", text: "No waiting on uploads or downloads. Your own device does the work." },
-]
+/** Category colour as a dot (filters) and a top strip (cards). Literal classes so Tailwind sees them. */
+const CATEGORY_DOT: Record<CategoryId, string> = {
+  image: "bg-violet-500",
+  document: "bg-rose-500",
+  media: "bg-sky-500",
+  gif: "bg-emerald-500",
+  archive: "bg-amber-500",
+  data: "bg-indigo-500",
+}
 
+/** A large card: colour strip, icon tile, name and one-line purpose. */
 export function ToolCard({ tool }: { tool: Tool }) {
+  const category = categoryOf(tool)
   return (
-    <a href={`#/${tool.id}`} className="group rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
-      <Card className="h-full transition-all group-hover:-translate-y-0.5 group-hover:shadow-md">
-        <CardHeader>
-          <div className={cn("mb-2 flex size-10 items-center justify-center rounded-lg", categoryOf(tool).accent)}>
-            <tool.icon className="size-5" />
-          </div>
-          <CardTitle className="flex items-center gap-2">
-            {tool.name}
-            <ToolBadges tool={tool} />
-          </CardTitle>
-          <CardDescription>{tool.description}</CardDescription>
-        </CardHeader>
-      </Card>
+    <a
+      href={`#/${tool.id}`}
+      className="group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card p-4 shadow-xs transition-[box-shadow,border-color] outline-none hover:border-foreground/20 hover:shadow-md focus-visible:ring-3 focus-visible:ring-ring/50 sm:p-5"
+    >
+      <span aria-hidden className={cn("absolute inset-x-0 top-0 h-1 opacity-80", CATEGORY_DOT[tool.category])} />
+      <span className={cn("flex size-11 items-center justify-center rounded-xl shadow-sm sm:size-12", category.solid)}>
+        <tool.icon className="size-5 sm:size-6" />
+      </span>
+      <span className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 font-heading text-base leading-snug font-semibold sm:text-lg">
+        {tool.name}
+        <ToolBadges tool={tool} />
+      </span>
+      <span className="mt-1.5 line-clamp-3 text-xs leading-relaxed text-muted-foreground sm:text-sm">{tool.description}</span>
+      <span className="mt-auto flex items-center gap-1 pt-4 text-sm font-medium text-muted-foreground group-hover:text-foreground max-sm:hidden">
+        Open <ArrowRight className="size-3.5" />
+      </span>
+    </a>
+  )
+}
+
+/** A small tile: icon and name. Used for "More tools" under a tool. */
+function ToolTile({ tool }: { tool: Tool }) {
+  return (
+    <a
+      href={`#/${tool.id}`}
+      title={tool.description}
+      className="flex h-full items-center gap-3 rounded-xl border bg-card p-2.5 text-sm font-medium transition-colors outline-none hover:border-foreground/20 hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", categoryOf(tool).accent)}>
+        <tool.icon className="size-[18px]" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-1 leading-snug">
+        {tool.name}
+        <ToolBadges tool={tool} />
+      </span>
+    </a>
+  )
+}
+
+export function ToolGrid({ tools, variant = "card", className }: { tools: Tool[]; variant?: "card" | "tile"; className?: string }) {
+  const Item = variant === "card" ? ToolCard : ToolTile
+  return (
+    <div
+      className={cn(
+        variant === "card"
+          ? "grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
+          : "grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4",
+        className
+      )}
+    >
+      {tools.map((tool) => (
+        <Item key={tool.id} tool={tool} />
+      ))}
+    </div>
+  )
+}
+
+function ConversionChip({ tool }: { tool: Tool }) {
+  return (
+    <a
+      href={`#/${tool.id}`}
+      title={tool.description}
+      className="inline-flex h-8 items-center gap-1.5 rounded-lg border bg-card px-2 text-sm transition-colors hover:border-foreground/20 hover:bg-muted/50"
+    >
+      <FormatPair name={tool.name} />
+      <NewTag tool={tool} />
     </a>
   )
 }
@@ -36,142 +91,136 @@ export function ToolCard({ tool }: { tool: Tool }) {
 export function QuickLinks({ tools, label = "Quick conversions" }: { tools: Tool[]; label?: string }) {
   if (tools.length === 0) return null
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-1.5">
       <span className="mr-1 text-sm text-muted-foreground">{label}:</span>
       {tools.map((tool) => (
-        <a key={tool.id} href={`#/${tool.id}`} className={cn(badgeVariants({ variant: "outline" }), "h-7 px-3 text-sm hover:bg-muted")}>
-          {tool.name}
-          <NewTag tool={tool} />
-        </a>
+        <ConversionChip key={tool.id} tool={tool} />
       ))}
     </div>
   )
 }
 
-/** A category's featured tools as cards, with its presets as quick links. */
-export function CategorySection({ category, showAll }: { category: Category; showAll?: boolean }) {
-  const tools = toolsIn(category.id)
-  // The category page lists every tool as a card; the home page keeps presets as compact links.
-  const cards = showAll ? [...tools.filter((t) => t.featured), ...tools.filter((t) => !t.featured)] : tools.filter((t) => t.featured)
-  const quick = showAll ? [] : tools.filter((t) => !t.featured)
-  const Heading = showAll ? "h1" : "h2"
-
+function Pill({ href, active, dot, label, count }: { href: string; active: boolean; dot?: string; label: string; count: number }) {
   return (
-    <section id={`cat-${category.id}`} className="grid scroll-mt-20 gap-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className={cn("flex shrink-0 items-center justify-center rounded-xl", category.accent, showAll ? "size-12" : "size-10")}>
-            <category.icon className={showAll ? "size-6" : "size-5"} />
-          </div>
-          <div>
-            <Heading className={cn("font-heading font-semibold tracking-tight", showAll ? "text-2xl sm:text-3xl" : "text-xl")}>
-              {category.name}
-            </Heading>
-            <p className="text-sm text-muted-foreground">{category.description}</p>
-          </div>
-        </div>
-        {!showAll && (
-          <a href={`#/c/${category.id}`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-            View all {tools.length} <ArrowRight />
+    <a
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "inline-flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+        active ? "border-foreground bg-foreground text-background" : "bg-card hover:border-foreground/30"
+      )}
+    >
+      {dot && <span aria-hidden className={cn("size-2 rounded-full", dot)} />}
+      {label}
+      <span className={cn("text-xs tabular-nums", active ? "opacity-60" : "text-muted-foreground")}>{count}</span>
+    </a>
+  )
+}
+
+/** Category filter. Centred and wrapping on wide screens; one sideways-scrolling row on phones. */
+function CategoryFilter({ active }: { active?: CategoryId }) {
+  return (
+    <nav
+      aria-label="Filter by category"
+      className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:justify-center sm:px-0"
+    >
+      <Pill href="#/" active={!active} label="All" count={TOOLS.length} />
+      {CATEGORIES.map((c) => (
+        <Pill key={c.id} href={`#/c/${c.id}`} active={active === c.id} dot={CATEGORY_DOT[c.id]} label={c.name} count={toolsIn(c.id).length} />
+      ))}
+    </nav>
+  )
+}
+
+function Intro({ category }: { category?: Category }) {
+  return (
+    <div className="mx-auto max-w-3xl text-center">
+      <p className="mb-4 inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
+        <ShieldCheck className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+        100% in your browser · nothing is uploaded
+      </p>
+      <h1 className="font-heading text-3xl font-bold tracking-tight text-balance sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
+        {category ? `${category.name} tools` : "All your file tools in one place"}
+      </h1>
+      <p className="mt-3 text-pretty text-muted-foreground sm:text-lg">
+        {category
+          ? category.description
+          : `${TOOLS.length} free tools to convert, compress, merge and edit images, PDFs, video, audio, GIFs and data. No sign-up, no limits.`}
+      </p>
+    </div>
+  )
+}
+
+function SearchResults({ query, results, category }: { query: string; results: Tool[]; category?: Category }) {
+  const where = category ? ` in ${category.name}` : ""
+  if (results.length === 0) {
+    return (
+      <div className="grid justify-items-center gap-2 rounded-2xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground" aria-live="polite">
+        <SearchX className="size-5" />
+        <p>
+          No tool{where} matches “{query.trim()}”.
+        </p>
+        {category && (
+          <a href="#/" className="font-medium text-foreground underline underline-offset-4">
+            Search all categories
           </a>
         )}
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {cards.map((tool) => (
-          <ToolCard key={tool.id} tool={tool} />
-        ))}
-      </div>
-      <QuickLinks tools={quick} />
+    )
+  }
+  return (
+    <section className="grid gap-4">
+      <p className="flex flex-wrap items-baseline justify-between gap-2 text-sm text-muted-foreground" aria-live="polite">
+        <span>
+          {results.length} tool{results.length === 1 ? "" : "s"}
+          {where} for “{query.trim()}”
+        </span>
+        <span className="hidden sm:inline">
+          <kbd className="rounded border bg-card px-1 font-mono text-xs">Enter</kbd> opens {results[0].name}
+        </span>
+      </p>
+      <ToolGrid tools={results} />
     </section>
   )
 }
 
-export function HomePage() {
-  const [query, setQuery] = useState("")
-  const results = query.trim() ? searchTools(query) : null
-  const latest = newTools()[0]
+type HomePageProps = {
+  /** Set on #/c/<id>: only that category's tools. */
+  category?: Category
+  query: string
+  /** Search results across all tools, or null when not searching. */
+  results: Tool[] | null
+}
+
+/** The tool directory for home (#/) and category pages (#/c/<id>). */
+export function HomePage({ category, query, results }: HomePageProps) {
+  const filtered = results && category ? results.filter((t) => t.category === category.id) : results
+  const quick = TOOLS.filter((t) => !t.featured)
 
   return (
-    <>
-      <section className="border-b bg-linear-to-b from-muted/60 to-background">
-        <div className="mx-auto max-w-6xl px-4 py-14 text-center sm:py-20">
-          {latest ? (
-            <a href={`#/${latest.id}`} className={cn(badgeVariants({ variant: "outline" }), "mb-5 h-7 gap-1.5 bg-background px-3 hover:bg-muted")}>
-              <Badge className="h-4 px-1.5 text-[10px]">New</Badge>
-              {latest.name} is here
-              <ArrowRight />
-            </a>
-          ) : (
-            <Badge variant="outline" className="mb-5 bg-background">
-              <Sparkles /> 100% free · No sign-up · Files never leave your device
-            </Badge>
-          )}
-          <h1 className="font-heading text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-            Every file tool you need.
-            <br />
-            <span className="text-muted-foreground">Free and private.</span>
-          </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg text-pretty text-muted-foreground">
-            Convert images, documents, ebooks, video and audio, make GIFs, and edit PDFs, all inside your browser.
-          </p>
-          <div className="relative mx-auto mt-8 max-w-md">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              aria-label="Search tools"
-              placeholder='Search tools, e.g. "heic to jpg" or "mp4 to mp3"'
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="h-11 bg-background pl-9 text-base shadow-sm"
-            />
-          </div>
-          {!results && (
-            <nav aria-label="Categories" className="mt-6 flex flex-wrap justify-center gap-2">
-              {CATEGORIES.map((category) => (
-                <button
-                  key={category.id}
-                  type="button"
-                  onClick={() => document.getElementById(`cat-${category.id}`)?.scrollIntoView({ behavior: "smooth" })}
-                  className={cn(badgeVariants({ variant: "outline" }), "h-8 cursor-pointer gap-1.5 bg-background px-3 text-sm hover:bg-muted")}
-                >
-                  <category.icon /> {category.name}
-                </button>
-              ))}
-            </nav>
-          )}
-        </div>
-      </section>
+    <div className="mx-auto grid max-w-screen-2xl gap-8 px-4 py-8 sm:px-6 sm:py-12">
+        <Intro category={category} />
+        <CategoryFilter active={category?.id} />
 
-      <div className="mx-auto grid max-w-6xl gap-14 px-4 py-12">
-        {results ? (
-          results.length ? (
-            <section className="grid gap-4">
-              <h2 className="font-heading text-lg font-semibold">
-                {results.length} tool{results.length === 1 ? "" : "s"} found
+        {filtered ? (
+          <SearchResults query={query} results={filtered} category={category} />
+        ) : category ? (
+          <ToolGrid tools={featuredFirst(toolsIn(category.id))} />
+        ) : (
+          <>
+            <ToolGrid tools={TOOLS.filter((t) => t.featured)} />
+            <section className="grid gap-3 rounded-2xl border bg-card p-4 sm:p-5">
+              <h2 className="flex items-center gap-2 font-heading font-semibold">
+                <Repeat2 className="size-4 text-muted-foreground" /> One-click conversions
               </h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {results.map((tool) => (
-                  <ToolCard key={tool.id} tool={tool} />
+              <div className="flex flex-wrap gap-1.5">
+                {quick.map((tool) => (
+                  <ConversionChip key={tool.id} tool={tool} />
                 ))}
               </div>
             </section>
-          ) : (
-            <p className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">No tool matches "{query}".</p>
-          )
-        ) : (
-          CATEGORIES.map((category) => <CategorySection key={category.id} category={category} />)
+          </>
         )}
-
-        <section className="grid gap-6 rounded-2xl border bg-muted/30 p-6 sm:grid-cols-3 sm:p-8">
-          {PROMISES.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="grid gap-2">
-              <Icon className="size-5" />
-              <h3 className="font-medium">{title}</h3>
-              <p className="text-sm text-muted-foreground">{text}</p>
-            </div>
-          ))}
-        </section>
-      </div>
-    </>
+    </div>
   )
 }

@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Layers, ShieldCheck } from "lucide-react"
 import { DesktopNav, MobileNav } from "@/components/site-nav"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Badge } from "@/components/ui/badge"
+import { ToolSearch } from "@/components/tool-search"
 import { Toaster } from "@/components/ui/sonner"
-import { CategoryPage } from "@/pages/category-page"
+import { cn } from "@/lib/utils"
 import { HomePage } from "@/pages/home"
 import { ToolPage } from "@/pages/tool-page"
-import { CATEGORIES, TOOLS } from "@/tools/registry"
+import { CATEGORIES, searchTools, TOOLS } from "@/tools/registry"
 
 /** Hash routing (#/tool-id, #/c/category) works on any static host without rewrite rules. */
 function useHashRoute(): string {
@@ -25,62 +25,67 @@ export default function App() {
   const route = useHashRoute()
   const tool = TOOLS.find((t) => t.id === route)
   const category = route.startsWith("c/") ? CATEGORIES.find((c) => c.id === route.slice(2)) : undefined
+  const [query, setQuery] = useState("")
+  const results = useMemo(() => (query.trim() ? searchTools(query) : null), [query])
+  const visibleResults = results && category ? results.filter((t) => t.category === category.id) : results
+
+  // Opening a tool ends the search. Category pages keep it, filtered to that category.
+  useEffect(() => {
+    if (tool) setQuery("")
+  }, [tool])
 
   useEffect(() => {
     const page = tool?.name ?? (category && `${category.name} tools`)
-    document.title = page ? `${page} · OmniKit` : "OmniKit · Free, private file tools"
+    document.title = page ? `${page} · OmniKit` : "OmniKit · Free, private tools"
     window.scrollTo(0, 0)
   }, [tool, category])
 
+  function search(value: string) {
+    setQuery(value)
+    // Results live in the tool directory; the header input stays mounted, so typing continues.
+    if (tool && value.trim()) location.hash = "#/"
+  }
+
+  function openTopResult() {
+    if (visibleResults?.[0]) location.hash = `#/${visibleResults[0].id}`
+  }
+
   return (
     <div className="flex min-h-svh flex-col">
-      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4">
+      <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center gap-2 px-4 py-2.5 sm:h-15 sm:flex-nowrap sm:gap-3 sm:px-6 sm:py-0">
           <MobileNav route={route} />
-          <a href="#/" className="mr-2 flex items-center gap-2 font-heading font-semibold">
+          <a href="#/" onClick={() => setQuery("")} className="flex shrink-0 items-center gap-2 font-heading font-semibold">
             <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Layers className="size-4" />
             </span>
             OmniKit
           </a>
           <DesktopNav route={route} />
-          <div className="ml-auto flex items-center gap-2">
-            <Badge variant="outline" className="hidden xl:inline-flex">
-              <ShieldCheck /> Files stay on your device
-            </Badge>
+          <ToolSearch
+            query={query}
+            onQueryChange={search}
+            onSubmit={openTopResult}
+            className="order-last w-full sm:order-none sm:mx-auto sm:max-w-xl sm:flex-1"
+          />
+          <div className="ml-auto sm:ml-0">
             <ThemeToggle />
           </div>
         </div>
       </header>
 
-      <main className="flex-1">
-        {tool ? <ToolPage tool={tool} /> : category ? <CategoryPage category={category} /> : <HomePage />}
+      <main className={cn("flex-1", !(tool && !results) && "bg-muted/40 dark:bg-transparent")}>
+        {tool && !results ? <ToolPage tool={tool} /> : <HomePage category={category} query={query} results={results} />}
       </main>
 
       <footer className="border-t">
-        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 text-sm sm:grid-cols-2 lg:grid-cols-6">
-          <div className="grid content-start gap-2 lg:col-span-1">
-            <p className="font-heading font-semibold">OmniKit</p>
-            <p className="text-muted-foreground">Free file tools. No accounts, no ads, no tracking. Everything runs in your browser.</p>
-          </div>
-          {CATEGORIES.map((c) => (
-            <div key={c.id} className="grid content-start gap-2">
-              <a href={`#/c/${c.id}`} className="font-medium hover:underline">
-                {c.name}
-              </a>
-              <ul className="grid gap-1.5 text-muted-foreground">
-                {TOOLS.filter((t) => t.category === c.id && t.featured)
-                  .slice(0, 5)
-                  .map((t) => (
-                    <li key={t.id}>
-                      <a href={`#/${t.id}`} className="hover:text-foreground">
-                        {t.name}
-                      </a>
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          ))}
+        <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-2 px-4 py-5 text-sm text-muted-foreground sm:px-6">
+          <span>
+            <span className="font-medium text-foreground">OmniKit</span> · Free. No accounts, ads or tracking.
+          </span>
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck className="size-4" /> Everything runs in your browser
+          </span>
         </div>
       </footer>
       <Toaster position="top-center" richColors />

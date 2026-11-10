@@ -2,10 +2,12 @@ import { createElement, lazy, type ComponentProps, type ComponentType, type Lazy
 import {
   AudioLines,
   BookOpen,
+  Braces,
   Clapperboard,
   Combine,
   FileArchive,
   FileAudio,
+  FileJson,
   FileDown,
   FileImage,
   FileOutput,
@@ -14,10 +16,13 @@ import {
   FileType,
   FileVideo,
   Film,
+  GitCompareArrows,
   Image,
   ImageDown,
   ImagePlay,
   Images,
+  ListTree,
+  Merge,
   Music,
   PackageOpen,
   PenTool,
@@ -26,14 +31,24 @@ import {
   Scissors,
   Shapes,
   Shrink,
+  Sheet,
   WandSparkles,
   type LucideIcon,
 } from "lucide-react"
 import { MEDIA_ACCEPT } from "@/lib/media/formats"
 
-export type CategoryId = "image" | "document" | "media" | "gif" | "archive"
+export type CategoryId = "image" | "document" | "media" | "gif" | "archive" | "data"
 
-export type Category = { id: CategoryId; name: string; description: string; icon: LucideIcon; accent: string }
+export type Category = {
+  id: CategoryId
+  name: string
+  description: string
+  icon: LucideIcon
+  /** Icon chip colours. */
+  accent: string
+  /** Solid icon tile for the large tool cards. */
+  solid: string
+}
 
 export const CATEGORIES: Category[] = [
   {
@@ -42,6 +57,7 @@ export const CATEGORIES: Category[] = [
     description: "Convert, compress, resize and edit photos and graphics.",
     icon: Image,
     accent: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    solid: "bg-violet-500 text-white dark:bg-violet-500/90",
   },
   {
     id: "document",
@@ -49,6 +65,7 @@ export const CATEGORIES: Category[] = [
     description: "Convert documents and ebooks, and merge, split or shrink PDFs.",
     icon: FileText,
     accent: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+    solid: "bg-rose-500 text-white dark:bg-rose-500/90",
   },
   {
     id: "media",
@@ -56,6 +73,7 @@ export const CATEGORIES: Category[] = [
     description: "Convert video and audio, or pull the sound out of a video.",
     icon: Clapperboard,
     accent: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+    solid: "bg-sky-500 text-white dark:bg-sky-500/90",
   },
   {
     id: "gif",
@@ -63,6 +81,7 @@ export const CATEGORIES: Category[] = [
     description: "Make animated GIFs from videos and images, or convert them.",
     icon: ImagePlay,
     accent: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    solid: "bg-emerald-500 text-white dark:bg-emerald-500/90",
   },
   {
     id: "archive",
@@ -70,6 +89,15 @@ export const CATEGORIES: Category[] = [
     description: "Bundle files and folders into a ZIP, or open one.",
     icon: FileArchive,
     accent: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    solid: "bg-amber-500 text-white dark:bg-amber-500/90",
+  },
+  {
+    id: "data",
+    name: "Data",
+    description: "Format, convert, merge and compare JSON, arrays, CSV and lists.",
+    icon: Braces,
+    accent: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
+    solid: "bg-indigo-500 text-white dark:bg-indigo-500/90",
   },
 ]
 
@@ -87,6 +115,8 @@ export type Tool = {
   badge?: string
   /** ISO date the tool went live; it's marked "New" for NEW_FOR_DAYS afterwards. */
   addedOn?: string
+  /** Side-by-side input and output panels need a wider page. */
+  wide?: boolean
   render: () => ReactNode
 }
 
@@ -114,6 +144,12 @@ const engines = {
   imagesToGif: lazy(() => import("./images-to-gif")),
   zipFiles: lazy(() => import("./zip-files")),
   unzip: lazy(() => import("./unzip")),
+  jsonMinify: lazy(() => import("./json-minify")),
+  jsonFormat: lazy(() => import("./json-format")),
+  listToArray: lazy(() => import("./list-to-array")),
+  arrayMerge: lazy(() => import("./array-merge")),
+  csvToJson: lazy(() => import("./csv-to-json")),
+  listCompare: lazy(() => import("./list-compare")),
 }
 
 /** Pairs tool metadata with an engine and type-checked preset props. */
@@ -125,6 +161,7 @@ const IMAGE = { category: "image" } as const
 const DOC = { category: "document" } as const
 const MEDIA = { category: "media" } as const
 const GIF = { category: "gif" } as const
+const DATA = { category: "data", featured: true, wide: true, addedOn: "2026-11-10" } as const
 
 const ALL_DOCS = ["pdf", "docx", "epub", "txt", "md", "html"] as const
 
@@ -437,6 +474,44 @@ export const TOOLS: Tool[] = [
       keywords: "extract unzip decompress open archive" },
     engines.unzip
   ),
+
+  // ---------------- Data ----------------
+  tool(
+    { ...DATA, id: "json-parser", name: "JSON / Array Parser", icon: Braces,
+      description: "Validate, parse and pretty-print JSON, JavaScript arrays and Python lists.",
+      keywords: "json array parse parser format formatter beautify prettify pretty print validate validator lint object python list" },
+    engines.jsonFormat
+  ),
+  tool(
+    { ...DATA, id: "json-minifier", name: "JSON / Array Minifier", icon: FileJson,
+      description: "Strip whitespace and comments from JSON and arrays to make them as small as possible.",
+      keywords: "json array minify minifier compress compact shrink whitespace one line" },
+    engines.jsonMinify
+  ),
+  tool(
+    { ...DATA, id: "list-to-array", name: "Text List to Array", icon: ListTree,
+      description: "Turn a list of lines into comma-separated values, a [ ] array or a ( ) list.",
+      keywords: "text list lines to array comma separated delimited csv brackets parentheses sql in quotes join convert" },
+    engines.listToArray
+  ),
+  tool(
+    { ...DATA, id: "array-merger", name: "Array Merger", icon: Merge,
+      description: "Combine several arrays into one, with optional de-duplication and sorting.",
+      keywords: "array merge merger combine join concat concatenate union dedupe unique sort json" },
+    engines.arrayMerge
+  ),
+  tool(
+    { ...DATA, id: "csv-to-json", name: "CSV to JSON", icon: Sheet,
+      description: "Convert CSV or TSV data into a JSON array of objects or arrays.",
+      keywords: "csv tsv to json convert spreadsheet excel table comma tab separated" },
+    engines.csvToJson
+  ),
+  tool(
+    { ...DATA, id: "compare-lists", name: "Compare Two Lists", icon: GitCompareArrows,
+      description: "Find which items two lists share and which are unique to each.",
+      keywords: "compare diff difference two lists match matching common unique intersection union missing duplicates" },
+    engines.listCompare
+  ),
 ]
 
 const NEW_FOR_DAYS = 30
@@ -458,11 +533,25 @@ export function toolsIn(category: CategoryId): Tool[] {
   return TOOLS.filter((t) => t.category === category)
 }
 
+/** Main tools first, then the quick conversions. */
+export function featuredFirst(tools: Tool[]): Tool[] {
+  return [...tools.filter((t) => t.featured), ...tools.filter((t) => !t.featured)]
+}
+
+/** Every term must match; tools whose name matches rank first, then main tools. */
 export function searchTools(query: string): Tool[] {
-  const terms = query.toLowerCase().split(/\s+/).filter(Boolean)
+  const q = query.toLowerCase().trim()
+  const terms = q.split(/\s+/).filter(Boolean)
   if (terms.length === 0) return TOOLS
+  const rank = (tool: Tool) => {
+    const name = tool.name.toLowerCase()
+    return (name.startsWith(q) ? 0 : name.includes(q) ? 1 : terms.every((t) => name.includes(t)) ? 2 : 3) * 2 + (tool.featured ? 0 : 1)
+  }
   return TOOLS.filter((tool) => {
-    const haystack = `${tool.name} ${tool.description} ${tool.keywords}`.toLowerCase()
+    const haystack = `${tool.name} ${tool.description} ${tool.keywords} ${categoryOf(tool).name}`.toLowerCase()
     return terms.every((term) => haystack.includes(term))
   })
+    .map((tool) => ({ tool, rank: rank(tool) }))
+    .sort((a, b) => a.rank - b.rank)
+    .map(({ tool }) => tool)
 }

@@ -11,14 +11,14 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { FormatPair } from "@/components/format-pair"
 import { NewTag } from "@/components/tool-badges"
 import { cn } from "@/lib/utils"
-import { CATEGORIES, toolsIn, type Tool } from "@/tools/registry"
+import { CATEGORIES, featuredFirst, isNew, TOOLS, toolsIn } from "@/tools/registry"
 
-/** Featured tools first, then the quick conversions, as in the reference layout. */
-const ordered = (tools: Tool[]) => [...tools.filter((t) => t.featured), ...tools.filter((t) => !t.featured)]
+const NEW_DOT = "size-1.5 shrink-0 rounded-full bg-emerald-500"
 
-/** Desktop: one "All tools" mega-menu with a column per category. */
+/** Desktop: an "All tools" mega-menu laid out as aligned category blocks. */
 export function DesktopNav({ route }: { route: string }) {
   // Close the menu on any navigation, including the browser's Back button.
   const [open, setOpen] = useState("")
@@ -30,37 +30,71 @@ export function DesktopNav({ route }: { route: string }) {
         <NavigationMenuItem>
           <NavigationMenuTrigger>All tools</NavigationMenuTrigger>
           <NavigationMenuContent>
-            <div className="grid w-[min(1060px,calc(100vw-6rem))] grid-cols-5 gap-x-2 p-3">
-              {CATEGORIES.map((category) => (
-                <div key={category.id} className="grid content-start gap-0.5 border-l px-2 first:border-l-0">
-                  <NavigationMenuLink asChild>
-                    <a href={`#/c/${category.id}`} className="mb-1 flex-row items-center gap-2 font-semibold">
-                      <category.icon className="size-4" />
-                      {category.name}
-                    </a>
-                  </NavigationMenuLink>
-                  {ordered(toolsIn(category.id)).map((tool) => (
-                    <NavigationMenuLink key={tool.id} asChild>
-                      <a href={`#/${tool.id}`} className="flex-row items-center gap-1.5 py-1.5 text-muted-foreground hover:text-foreground">
-                        {tool.name}
-                        <NewTag tool={tool} />
-                      </a>
-                    </NavigationMenuLink>
-                  ))}
-                </div>
-              ))}
+            <div className="flex max-h-[calc(100svh-5rem)] w-[min(1100px,calc(100vw-10.5rem))] flex-col">
+              <div className="grid gap-x-6 gap-y-6 overflow-y-auto p-5 md:grid-cols-2 lg:grid-cols-3">
+                {CATEGORIES.map((category) => {
+                  const tools = toolsIn(category.id)
+                  const main = tools.filter((t) => t.featured)
+                  const quick = tools.filter((t) => !t.featured)
+                  return (
+                    <section key={category.id} className="grid content-start gap-2">
+                      <NavigationMenuLink
+                        asChild
+                        className="gap-2.5 rounded-none border-b px-1 pb-2.5 font-semibold whitespace-nowrap hover:bg-transparent focus:bg-transparent in-data-[slot=navigation-menu-content]:rounded-none"
+                      >
+                        <a href={`#/c/${category.id}`}>
+                          <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-md", category.accent)}>
+                            <category.icon className="size-4" />
+                          </span>
+                          {category.name}
+                          <span className="text-xs font-normal text-muted-foreground tabular-nums">{tools.length}</span>
+                        </a>
+                      </NavigationMenuLink>
+                      <ul className="grid grid-cols-2 gap-x-2">
+                        {main.map((tool) => (
+                          <li key={tool.id}>
+                            <NavigationMenuLink asChild className="block px-2 py-1.5 leading-snug text-muted-foreground hover:text-foreground">
+                              <a href={`#/${tool.id}`} title={tool.description}>
+                                {tool.name}
+                                {isNew(tool) && (
+                                  <>
+                                    <span aria-hidden className={cn(NEW_DOT, "ml-1.5 inline-block align-middle")} />
+                                    <span className="sr-only">(new)</span>
+                                  </>
+                                )}
+                              </a>
+                            </NavigationMenuLink>
+                          </li>
+                        ))}
+                      </ul>
+                      {quick.length > 0 && (
+                        <ul className="flex flex-wrap gap-1 px-1 pt-1">
+                          {quick.map((tool) => (
+                            <li key={tool.id}>
+                              <NavigationMenuLink asChild className="h-7 gap-1 border px-1.5 py-0 hover:border-foreground/20">
+                                <a href={`#/${tool.id}`} title={tool.description}>
+                                  <FormatPair name={tool.name} />
+                                </a>
+                              </NavigationMenuLink>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </section>
+                  )
+                })}
+              </div>
+              <div className="flex items-center justify-between gap-4 border-t bg-muted/40 px-5 py-2.5 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span aria-hidden className={NEW_DOT} /> New tool
+                </span>
+                <span>
+                  Press <kbd className="rounded border bg-background px-1 font-mono">/</kbd> to search all {TOOLS.length} tools
+                </span>
+              </div>
             </div>
           </NavigationMenuContent>
         </NavigationMenuItem>
-        {CATEGORIES.slice(0, 4).map((category) => (
-          <NavigationMenuItem key={category.id} className="hidden lg:block">
-            <NavigationMenuLink asChild>
-              <a href={`#/c/${category.id}`} className="px-3 py-2 font-medium">
-                {category.name}
-              </a>
-            </NavigationMenuLink>
-          </NavigationMenuItem>
-        ))}
       </NavigationMenuList>
     </NavigationMenu>
   )
@@ -93,7 +127,7 @@ export function MobileNav({ route }: { route: string }) {
               </AccordionTrigger>
               <AccordionContent>
                 <ul className="grid gap-1">
-                  {ordered(toolsIn(category.id)).map((tool) => (
+                  {featuredFirst(toolsIn(category.id)).map((tool) => (
                     <li key={tool.id}>
                       <a
                         href={`#/${tool.id}`}
